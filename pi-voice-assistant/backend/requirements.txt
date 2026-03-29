@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+ollama
+faster-whisper
+piper-tts
+python-multipart
+pyaudio
+websockets
+vosk
+stt
+st7789
+spidev
+Pillow
