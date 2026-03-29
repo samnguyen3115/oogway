@@ -41,14 +41,23 @@ def synthesize_audio(text: str) -> str:
     fd, temp_path = tempfile.mkstemp(suffix=".wav")
     os.close(fd)
     
-    # Piper TTS takes text on standard input and outputs WAV. 
-    # Calling it via 'python -m piper' ensures cross-platform capability where 'piper' might not be explicitly in PATH
-    process = subprocess.Popen(
-        ['python', '-m', 'piper', '-m', MODEL_PATH, '-f', temp_path],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-    )
+    # Modern piper-tts usually installs a standalone 'piper' binary in your venv/bin
+    # We will try 'piper' first, and then 'python -m piper' as a fallback.
+    try:
+        process = subprocess.Popen(
+            ['piper', '-m', MODEL_PATH, '-f', temp_path, '--config', CONFIG_PATH],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+    except FileNotFoundError:
+        # Fallback for environments where the binary isn't in PATH
+        process = subprocess.Popen(
+            [sys.executable, '-m', 'piper', '-m', MODEL_PATH, '-f', temp_path, '--config', CONFIG_PATH],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
     
     # Send the text to Piper's standard input
     stdout, stderr = process.communicate(input=text.encode('utf-8'))

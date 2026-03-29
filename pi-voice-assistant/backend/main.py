@@ -57,28 +57,52 @@ MODEL_NAME = "phi"
 IS_AWAKE = False
 
 def play_audio_file(file_path: str):
-    """Play a .wav file through the system's default audio output."""
+    """
+    Play a .wav file. 
+    On Linux/Pi, we use 'aplay' because it handles hardware sample-rate 
+    resampling (e.g., 22050Hz to 44100Hz) automatically.
+    """
     if not os.path.exists(file_path):
         return
     
-    CHUNK = 1024
-    wf = wave.open(file_path, 'rb')
-    p = pyaudio.PyAudio()
-    
-    stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
-                    channels=wf.getnchannels(),
-                    rate=wf.getframerate(),
-                    output=True)
-    
-    data = wf.readframes(CHUNK)
-    while data:
-        stream.write(data)
-        data = wf.readframes(CHUNK)
+    # Check if we are on Linux (Raspberry Pi)
+    if os.name != 'nt':
+        try:
+            # 'plug:default' is a special ALSA device that FORCES software resampling.
+            # This is the most compatible way to play audio on Pi hardware.
+            import subprocess
+            subprocess.run(['aplay', '-D', 'plughw:0', file_path], check=True, capture_output=True)
+            return
+        except Exception:
+            try:
+                # Fallback to the standard 'default' if plughw:0 isn't the right index
+                subprocess.run(['aplay', '-D', 'default', file_path], check=True, capture_output=True)
+                return
+            except Exception as e:
+                print(f"aplay failed, falling back to pyaudio: {e}")
+
+    # Fallback to PyAudio (for Windows or if aplay is missing)
+    try:
+        CHUNK = 1024
+        wf = wave.open(file_path, 'rb')
+        p = pyaudio.PyAudio()
         
-    stream.stop_stream()
-    stream.close()
-    p.terminate()
-    wf.close()
+        stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
+                        channels=wf.getnchannels(),
+                        rate=wf.getframerate(),
+                        output=True)
+        
+        data = wf.readframes(CHUNK)
+        while data:
+            stream.write(data)
+            data = wf.readframes(CHUNK)
+            
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
+        wf.close()
+    except Exception as e:
+        print(f"Audio playback error: {e}")
 
 def handle_voice_input(transcription: str, audio_path: str):
     """
