@@ -1,0 +1,15 @@
+[Unit]
+Description=BMO/Sam Voice Assistant Display Animation
+After=voice-assistant.service
+
+[Service]
+User=sam
+WorkingDirectory=/home/sam/oogway/pi-voice-assistant/backend
+ExecStart=/home/sam/oogway/pi-voice-assistant/backend/venv/bin/python display_pi.py
+Restart=always
+RestartSec=5
+StandardOutput=inherit
+StandardError=inherit
+
+[Install]
+WantedBy=multi-user.target

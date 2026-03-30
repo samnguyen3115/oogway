@@ -8,6 +8,6 @@ pyaudio
 websockets
 vosk
 stt
-st7789
+lgpio
 spidev
 Pillow

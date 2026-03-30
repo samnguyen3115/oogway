@@ -127,10 +127,11 @@ def handle_voice_input(transcription: str, audio_path: str):
                 ai_text = "Yes? I'm listening. What can I do for you?"
                 
                 # Push status to UI
+                # --- FIX: Start in SPEAKING state for the greeting ---
                 loop.run_until_complete(broadcast_to_frontend({
                     "transcription": transcription,
                     "ai_text": ai_text,
-                    "state": "AWAKE"
+                    "state": "SPEAKING"
                 }))
                 
                 # Speak it
@@ -138,6 +139,13 @@ def handle_voice_input(transcription: str, audio_path: str):
                 play_audio_file(ai_audio_path)
                 if os.path.exists(ai_audio_path):
                     os.remove(ai_audio_path)
+                    
+                # After greeting, stay AWAKE and ready for the query
+                loop.run_until_complete(broadcast_to_frontend({
+                    "transcription": transcription,
+                    "ai_text": ai_text,
+                    "state": "AWAKE"
+                }))
             
             # Transcription isn't needed if we are asleep and didn't hear a wake word
             
@@ -177,6 +185,14 @@ def handle_voice_input(transcription: str, audio_path: str):
             
             # Synthesize answer
             ai_audio_path = synthesize_audio(ai_text)
+
+            # --- FIX: Broadcast SPEAKING state before playing audio ---
+            loop.run_until_complete(broadcast_to_frontend({
+                "transcription": high_acc_transcription,
+                "ai_text": ai_text,
+                "state": "SPEAKING"
+            }))
+            
             play_audio_file(ai_audio_path)
             if os.path.exists(ai_audio_path):
                 os.remove(ai_audio_path)
